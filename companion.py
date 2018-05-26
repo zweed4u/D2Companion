@@ -307,16 +307,66 @@ class D2Companion:
         }
         return self._make_request('GET', f'platform/Destiny2/1/Account/{self.membership_id}/Character/{self.character_hashes[0]}/Stats/Activities/', params=query_string, headers=self.headers)
 
-    def equip_item(self, character_hash, item_hash):
+    # titan   *944
+    # warlock *945
+    # hunter  *946
+    def equip_item(self, character_hash, item_instance_id):
         payload_field = {
             "characterId":str(character_hash),
-            "itemId":str(item_hash),
+            "itemId":str(item_instance_id),
             "membershipType":1
         }
         payload = {
             json.dumps(payload_field): ''
         }
         return self._make_request('POST', 'platform/Destiny2/Actions/Items/EquipItem/', params={'lc':'en'}, data=payload, headers=self.headers)
+
+    def transfer_item_to_vault(self, from_character_hash, item_instance_id, item_hash):
+        payload_field = {
+            "stackSize":1,
+            "itemId":str(item_instance_id),
+            "transferToVault":True,
+            "membershipType":1,
+            "itemReferenceHash":int(item_hash),
+            "characterId":str(from_character_hash)
+        }
+        payload = {
+            json.dumps(payload_field): ''
+        }
+        return self._make_request('POST', 'platform/Destiny2/Actions/Items/TransferItem/', params={'lc':'en'}, data=payload, headers=self.headers)
+
+    def transfer_item_from_vault(self, to_character_hash, item_instance_id, item_hash):
+        payload_field = {
+            "stackSize":1,
+            "itemId":str(item_instance_id),
+            "transferToVault":False,
+            "membershipType":1,
+            "itemReferenceHash":int(item_hash),
+            "characterId":str(to_character_hash)
+        }
+        payload = {
+            json.dumps(payload_field): ''
+        }
+        return self._make_request('POST', 'platform/Destiny2/Actions/Items/TransferItem/', params={'lc':'en'}, data=payload, headers=self.headers)
+
+
+    def transfer_to_warlock(self, from_character_hash, item_instance_id, item_hash):
+        # TODO: need to parse for warlock hash
+        to_character_hash = None
+        self.transfer_item_to_vault(from_character_hash, item_instance_id, item_hash)
+        self.transfer_item_from_vault(to_character_hash, item_instance_id, item_hash)
+
+    def transfer_to_hunter(self, from_character_hash, item_instance_id, item_hash):
+        # TODO: need to parse for hunter hash
+        to_character_hash = None
+        self.transfer_item_to_vault(from_character_hash, item_instance_id, item_hash)
+        self.transfer_item_from_vault(to_character_hash, item_instance_id, item_hash)
+
+    def transfer_to_titan(self, from_character_hash, item_instance_id, item_hash):
+        # TODO: need to parse for titan hash
+        to_character_hash = None
+        self.transfer_item_to_vault(from_character_hash, item_instance_id, item_hash)
+        self.transfer_item_from_vault(to_character_hash, item_instance_id, item_hash)
 
 
 root_directory = os.getcwd()
