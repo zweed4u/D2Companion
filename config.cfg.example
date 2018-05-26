@@ -1,0 +1,11 @@
+# Modify this file and save it as config.cfg
+
+[authentication]
+username_email = johndoe@gmail.com
+password = password12345
+
+[app_info]
+app_id = 3523A04E-D68F-4E52-9438-E3A67AEF9132
+app_token = APP_TOKEN_HERE
+api_key = API_KEY_HERE
+client_id = CLIENT_ID_HERE

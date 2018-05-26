@@ -3,13 +3,18 @@ import os
 import time
 import urllib
 import requests
+import configparser
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
 
 class LoginLive:
     def __init__(self):
-        self.api_key = <API_KEY_HERE>
+        root_directory = os.getcwd()
+        self.c = configparser.ConfigParser()
+        configFilePath = os.path.join(root_directory, 'config.cfg')
+        self.c.read(configFilePath)
+        self.api_key = self.c.get('app_info', 'api_key')
         self.state = None
         self.code = None
         self.base_headers = {
@@ -40,7 +45,7 @@ class LoginLive:
         self._get_landing_page()
         if use_requests:
             data = {
-                'bungiemobiletkr':        <MOBILE_TOKEN_HERE>,  # Figure out if this is device specific/static or if we need to scrape/parse for it
+                'bungiemobiletkr':        self.c.get('app_info', 'app_id'),  # Figure out if this is device specific/static or if we need to scrape/parse for it
                 'bungiemobileapptype':    'BnetMobile',
                 'bungiemobiledevicename': None  # 'null'
             }
@@ -119,7 +124,7 @@ class LoginLive:
                 "username": username
             }
             params = {
-                'client_id':<client_id>,  # Figure out if this is static
+                'client_id':self.c.get('app_info', 'client_id'),  # Figure out if this is static
                 'scope':'Xboxlive.signin Xboxlive.offline_access',
                 'response_type':'code',
                 'redirect_uri':'https://www.bungie.net/en/User/SignIn/Xuid',
@@ -165,7 +170,7 @@ class LoginLive:
             }
 
             params = {
-                'client_id':<client_id>,  # Figure out if this is static
+                'client_id':self.c.get('app_info', 'client_id'),  # Figure out if this is static
                 'scope':'Xboxlive.signin Xboxlive.offline_access',  # Figure out if this is static
                 'response_type':'code',  # Figure out if this is static
                 'redirect_uri':'https://www.bungie.net/en/User/SignIn/Xuid',  # Figure out if this is static
