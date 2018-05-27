@@ -371,26 +371,38 @@ class D2Companion:
         return self._make_request('POST', 'platform/Destiny2/Actions/Items/TransferItem/', params={'lc':'en'}, data=payload, headers=self.headers)
 
     def transfer_from_hunter_to_warlock(self, item_instance_id, item_hash):
+        if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
+            self.get_profile()
         self.transfer_item_to_vault(self.character_hashes['hunter'], item_instance_id, item_hash)
         self.transfer_item_from_vault(self.character_hashes['warlock'], item_instance_id, item_hash)
 
     def transfer_from_hunter_to_titan(self, item_instance_id, item_hash):
+        if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
+            self.get_profile()
         self.transfer_item_to_vault(self.character_hashes['hunter'], item_instance_id, item_hash)
         self.transfer_item_from_vault(self.character_hashes['titan'], item_instance_id, item_hash)
 
     def transfer_from_titan_to_warlock(self, item_instance_id, item_hash):
+        if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
+            self.get_profile()
         self.transfer_item_to_vault(self.character_hashes['titan'], item_instance_id, item_hash)
         self.transfer_item_from_vault(self.character_hashes['warlock'], item_instance_id, item_hash)
 
     def transfer_from_titan_to_hunter(self, item_instance_id, item_hash):
+        if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
+            self.get_profile()
         self.transfer_item_to_vault(self.character_hashes['titan'], item_instance_id, item_hash)
         self.transfer_item_from_vault(self.character_hashes['hunter'], item_instance_id, item_hash)
 
     def transfer_from_warlock_to_hunter(self, item_instance_id, item_hash):
+        if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
+            self.get_profile()
         self.transfer_item_to_vault(self.character_hashes['warlock'], item_instance_id, item_hash)
         self.transfer_item_from_vault(self.character_hashes['hunter'], item_instance_id, item_hash)
 
     def transfer_from_warlock_to_titan(self, item_instance_id, item_hash):
+        if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
+            self.get_profile()
         self.transfer_item_to_vault(self.character_hashes['warlock'], item_instance_id, item_hash)
         self.transfer_item_from_vault(self.character_hashes['titan'], item_instance_id, item_hash)
 
