@@ -127,9 +127,14 @@ class D2Companion:
         post_headers = self.headers
         post_headers.update({'Content-Type':'application/x-www-form-urlencoded'})
         payload = {
-            '{"ApnLocale":"en","AppInstallationId":"{}}","ApnToken":"{}}': '","AppType":"BnetMobile","DeviceType":5,"MembershipType":254}'.format(self.config.get('app_info', 'app_id'), self.config.get('app_info', 'app_token'))
+            "ApnLocale": "en",
+            "ApnToken": str(self.config.get('app_info', 'app_id')),
+            "AppInstallationId": str(self.config.get('app_info', 'app_token')),
+            "AppType": "BnetMobile",
+            "DeviceType": 5,
+            "MembershipType": 254
         }
-        return self._make_request('POST', 'platform/User/UpdateStateInfoForMobileAppPair/', params={'lc':'en'}, data=payload, headers=post_headers)
+        return self._make_request('POST', 'platform/User/UpdateStateInfoForMobileAppPair/', params={'lc':'en'}, json=payload, headers=post_headers)
 
     def get_groups(self):
         if self.group_id is None:
