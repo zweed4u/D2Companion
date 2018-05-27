@@ -21,6 +21,9 @@ class D2Companion:
             'titan':   None,
             'hunter': None
         }
+        self.titan_gear = {}
+        self.hunter_gear = {}
+        self.warlock_gear = {}
         self.config = config
         self.base_url = 'https://www.bungie.net'
 
@@ -137,6 +140,7 @@ class D2Companion:
         return self._make_request('GET', f'platform/GroupV2/{self.group_id}/', params={'lc':'en'}, headers=self.headers)
 
     def get_profile(self):
+        # TODO Populate gear dictionaries with unequipped
         if self.membership_id is None:
             self.get_memberships_by_id()
         query_string = {
