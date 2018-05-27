@@ -110,7 +110,7 @@ class D2Companion:
             'head':False,
             'lc':'en'
         }
-        payload_field = {
+        payload = {
             "sortBy":0,
             "contentTypes":[
                 "MessageOfTheDay"
@@ -121,10 +121,7 @@ class D2Companion:
             "itemsPerPage":1,
             "tag":"platform-ios"
         }
-        payload = {
-            json.dumps(payload_field): ''
-        }
-        return self._make_request('POST', 'platform/Content/SearchEx/en/', params=query_string, data=payload, headers=post_headers)
+        return self._make_request('POST', 'platform/Content/SearchEx/en/', params=query_string, json=payload, headers=post_headers)
 
     def get_update_state_app_info(self):
         post_headers = self.headers
@@ -336,18 +333,15 @@ class D2Companion:
     # warlock *945
     # hunter  *946
     def equip_item(self, character_hash, item_instance_id):
-        payload_field = {
+        payload = {
             "characterId":str(character_hash),
             "itemId":str(item_instance_id),
             "membershipType":1
         }
-        payload = {
-            json.dumps(payload_field): ''
-        }
-        return self._make_request('POST', 'platform/Destiny2/Actions/Items/EquipItem/', params={'lc':'en'}, data=payload, headers=self.headers)
+        return self._make_request('POST', 'platform/Destiny2/Actions/Items/EquipItem/', params={'lc':'en'}, json=payload, headers=self.headers)
 
     def transfer_item_to_vault(self, from_character_hash, item_instance_id, item_hash):
-        payload_field = {
+        payload = {
             "stackSize":1,
             "itemId":str(item_instance_id),
             "transferToVault":True,
@@ -355,13 +349,10 @@ class D2Companion:
             "itemReferenceHash":int(item_hash),
             "characterId":str(from_character_hash)
         }
-        payload = {
-            json.dumps(payload_field): ''
-        }
-        return self._make_request('POST', 'platform/Destiny2/Actions/Items/TransferItem/', params={'lc':'en'}, data=payload, headers=self.headers)
+        return self._make_request('POST', 'platform/Destiny2/Actions/Items/TransferItem/', params={'lc':'en'}, json=payload, headers=self.headers)
 
     def transfer_item_from_vault(self, to_character_hash, item_instance_id, item_hash):
-        payload_field = {
+        payload = {
             "stackSize":1,
             "itemId":str(item_instance_id),
             "transferToVault":False,
@@ -369,10 +360,7 @@ class D2Companion:
             "itemReferenceHash":int(item_hash),
             "characterId":str(to_character_hash)
         }
-        payload = {
-            json.dumps(payload_field): ''
-        }
-        return self._make_request('POST', 'platform/Destiny2/Actions/Items/TransferItem/', params={'lc':'en'}, data=payload, headers=self.headers)
+        return self._make_request('POST', 'platform/Destiny2/Actions/Items/TransferItem/', params={'lc':'en'}, json=payload, headers=self.headers)
 
     def transfer_from_hunter_to_warlock(self, item_instance_id, item_hash):
         if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
