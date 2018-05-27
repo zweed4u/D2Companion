@@ -161,7 +161,6 @@ class D2Companion:
                 self.character_hashes.update({'titan':character_dictionary[character]['characterId']})
             else:
                 raise Exception('Class Hash wasn\'t found!')
-        print(profile_response)
         return profile_response
 
     def get_featured(self):
@@ -370,7 +369,6 @@ class D2Companion:
             json.dumps(payload_field): ''
         }
         return self._make_request('POST', 'platform/Destiny2/Actions/Items/TransferItem/', params={'lc':'en'}, data=payload, headers=self.headers)
-
 
     def transfer_to_warlock(self, from_character_hash, item_instance_id, item_hash):
         self.transfer_item_to_vault(from_character_hash, item_instance_id, item_hash)
