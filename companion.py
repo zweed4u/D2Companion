@@ -21,9 +21,7 @@ class D2Companion:
             'titan':   None,
             'hunter': None
         }
-        self.titan_gear = {}
-        self.hunter_gear = {}
-        self.warlock_gear = {}
+        self.hash_to_item = {}
         self.config = config
         self.base_url = 'https://www.bungie.net'
 
@@ -33,11 +31,28 @@ class D2Companion:
         else:
             return self.session.request(method, f'{self.base_url}/{endpoint}', params=params, data=data, json=json, headers=headers)
 
+    def populate_item_hash_dict(self, use_plumbling=False):
+        # TODO implement db implementation
+        if use_plumbling:
+            all_item_definitions = requests.request('GET', 'https://destiny.plumbing/en/raw/DestinyInventoryItemDefinition.json').json()
+            for item_hash in all_item_definitions.keys():
+                self.hash_to_item[int(item_hash)] = all_item_definitions[item_hash]['displayProperties']['name']
+        else:
+            world_content_db_path = f"http://bungie.net{self.get_manifest()['Response']['mobileWorldContentPaths']['en']}"
+            local_filename = world_content_db_path.split('/')[-1]
+            r = requests.request('GET', world_content_db_path, stream=True)
+            with open(local_filename, 'wb') as file:
+                for chunk in r.iter_content(chunk_size=1024): 
+                    if chunk:
+                        file.write(chunk)
+            # Unzip local_filename and rename to sqlite3 extension
+            # Connect to db and search through InventoryItemDefinition table
+            # Populate self.hash_to_item
+            return local_filename   
+
     def login(self, username, password):
         self.my_login = LoginLive()
         self.session = self.my_login.login(username, password)
-
-    def get_basics(self):
         self.headers = {
             'Host':             'www.bungie.net',
             'Accept':           '*/*',
@@ -49,6 +64,9 @@ class D2Companion:
             'Connection':       'keep-alive'
 
         }
+        self.populate_item_hash_dict()
+
+    def get_basics(self):
         basic_info_response = self._make_request('GET', 'platform/User/GetBungieNetUser/', params={'lc':'en'}, headers=self.headers)
         self.unique_name = basic_info_response['Response']['user']['uniqueName']
         return basic_info_response
@@ -128,8 +146,8 @@ class D2Companion:
         post_headers.update({'Content-Type':'application/x-www-form-urlencoded'})
         payload = {
             "ApnLocale": "en",
-            "ApnToken": str(self.config.get('app_info', 'app_id')),
-            "AppInstallationId": str(self.config.get('app_info', 'app_token')),
+            "ApnToken": str(self.config.get('app_info', 'app_token')),
+            "AppInstallationId": str(self.config.get('app_info', 'app_id')),
             "AppType": "BnetMobile",
             "DeviceType": 5,
             "MembershipType": 254
@@ -140,6 +158,10 @@ class D2Companion:
         if self.group_id is None:
             self.get_group_messages()
         return self._make_request('GET', f'platform/GroupV2/{self.group_id}/', params={'lc':'en'}, headers=self.headers)
+
+    def convert_item_hash(self):
+        # TODO implement match of inventory to hash_to_item dictionary
+        pass
 
     def get_profile(self):
         # TODO Populate gear dictionaries with unequipped
@@ -155,6 +177,15 @@ class D2Companion:
         titan_class_hash = 3655393761
         hunter_class_hash = 671679327
         warlock_class_hash = 2271682572
+
+        class_hash_lookup_dict = requests.request('GET', 'https://destiny.plumbing/en/raw/DestinyClassDefinition.json').json()
+        for listed_class_hash in class_hash_lookup_dict:
+            if class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'titan':
+                titan_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
+            elif class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'warlock':
+                warlock_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
+            elif class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'hunter':
+                hunter_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
 
         for character in character_dictionary:
             if int(character_dictionary[character]['classHash']) == warlock_class_hash:
@@ -415,4 +446,4 @@ if PRETTY_PRINT:
     print(json.dumps(D2.get_profile(), indent=4))
 else:
     print(D2.get_profile())
-print(D2.character_hashes)
+print(json.dumps(D2.hash_to_item, indent=4))
