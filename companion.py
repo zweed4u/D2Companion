@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 import os
 import json
+import shutil
+import sqlite3
+import zipfile
 import requests
 import configparser
 
@@ -32,7 +35,6 @@ class D2Companion:
             return self.session.request(method, f'{self.base_url}/{endpoint}', params=params, data=data, json=json, headers=headers)
 
     def populate_item_hash_dict(self, use_plumbling=False):
-        # TODO implement db implementation
         if use_plumbling:
             all_item_definitions = requests.request('GET', 'https://destiny.plumbing/en/raw/DestinyInventoryItemDefinition.json').json()
             for item_hash in all_item_definitions.keys():
@@ -45,10 +47,22 @@ class D2Companion:
                 for chunk in r.iter_content(chunk_size=1024): 
                     if chunk:
                         file.write(chunk)
-            # Unzip local_filename and rename to sqlite3 extension
-            # Connect to db and search through InventoryItemDefinition table
-            # Populate self.hash_to_item
-            return local_filename   
+            zip_ref = zipfile.ZipFile(f'{os.getcwd()}/{local_filename}', 'r')
+            zip_ref.extractall(f'{os.getcwd()}/{local_filename.split(".")[0]}')
+            zip_ref.close()
+            shutil.copy(f'{os.getcwd()}/{local_filename.split(".")[0]}/{local_filename}',os.getcwd())
+            shutil.rmtree(f'{os.getcwd()}/{local_filename.split(".")[0]}')
+            shutil.move(f'{os.getcwd()}/{local_filename}', f'{os.getcwd()}/{local_filename}.sqlite3')
+            db_file_path = f'{os.getcwd()}/{local_filename}.sqlite3'
+            conn = sqlite3.connect(db_file_path)
+            c = conn.cursor()
+            c.execute('SELECT id, json from DestinyInventoryItemDefinition')
+            id_json_items_list_tuple = c.fetchall()
+            for item_tuple in id_json_items_list_tuple:
+                item_hash = item_tuple[0]
+                item_json = json.loads(item_tuple[1])
+                self.hash_to_item[int(item_hash) & 0xFFFFFFFF] = item_json['displayProperties']['name']
+            return self.hash_to_item   
 
     def login(self, username, password):
         self.my_login = LoginLive()
