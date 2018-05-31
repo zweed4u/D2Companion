@@ -55,7 +55,7 @@ class D2Companion:
             zip_ref = zipfile.ZipFile(f'{os.getcwd()}/{local_filename}', 'r')
             zip_ref.extractall(f'{os.getcwd()}/{local_filename.split(".")[0]}')
             zip_ref.close()
-            shutil.copy(f'{os.getcwd()}/{local_filename.split(".")[0]}/{local_filename}',os.getcwd())
+            shutil.copy(f'{os.getcwd()}/{local_filename.split(".")[0]}/{local_filename}', os.getcwd())
             shutil.rmtree(f'{os.getcwd()}/{local_filename.split(".")[0]}')
             shutil.move(f'{os.getcwd()}/{local_filename}', f'{os.getcwd()}/{local_filename}.sqlite3')
             db_file_path = f'{os.getcwd()}/{local_filename}.sqlite3'
@@ -191,7 +191,6 @@ class D2Companion:
             'lc':'en'
         }
         profile_response = self._make_request('GET', f'platform/Destiny2/1/Profile/{self.membership_id}/', params=query_string, headers=self.headers)
-
         character_dictionary = profile_response['Response']['characters']['data']
 
         if hardcoded_class_hash:
@@ -221,12 +220,22 @@ class D2Companion:
             else:
                 raise Exception('Class Hash wasn\'t found!')
 
-        # Handle equipment
+        # Handle equipped equipment
         character_equipment = profile_response['Response']['characterEquipment']['data']
         for character_id in list(character_equipment.keys()):
             for item in character_equipment[character_id]['items']:
                 self.owned_item_hash_instance_id[list(self.character_hashes.keys())[list(self.character_hashes.values()).index(character_id)]].update({item['itemHash']:item['itemInstanceId']})
 
+        # Handle unequipped equipment (inventory)
+        character_inventory = profile_response['Response']['characterInventories']['data']
+        for character_id in list(character_inventory.keys()):
+            for item in character_inventory[character_id]['items']:
+                try:
+                    self.owned_item_hash_instance_id[list(self.character_hashes.keys())[list(self.character_hashes.values()).index(character_id)]].update({item['itemHash']:item['itemInstanceId']})
+                except:
+                    pass
+
+        # TODO collect vaulted items in own dictionary
         return profile_response
 
     def get_featured(self):
@@ -477,6 +486,7 @@ if PRETTY_PRINT:
 else:
     #print(D2.get_profile())
     pass
+D2.get_profile()
 #print(json.dumps(D2.hash_to_item, indent=4))
 #print(json.dumps(D2.get_my_character(), indent=4))
 print(json.dumps(D2.owned_item_hash_instance_id, indent=4))
