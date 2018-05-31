@@ -20,11 +20,16 @@ class D2Companion:
         self.unique_name = None
         self.membership_id = None
         self.character_hashes = {
-            'warlock': None,
-            'titan':   None,
-            'hunter': None
+            'character_1': None,  # personal: warlock
+            'character_2': None,  # personal: titan
+            'character_3': None  # personal: hunter
         }
         self.hash_to_item = {}
+        self.owned_item_hash_instance_id = {
+            'character_1': {},
+            'character_2': {},
+            'character_3': {}
+        }
         self.config = config
         self.base_url = 'https://www.bungie.net'
 
@@ -177,41 +182,51 @@ class D2Companion:
         # TODO implement match of inventory to hash_to_item dictionary
         pass
 
-    def get_profile(self):
+    def get_profile(self, hardcoded_class_hash=False):
         # TODO Populate gear dictionaries with unequipped
         if self.membership_id is None:
             self.get_memberships_by_id()
         query_string = {
-            'components':'100,200',  # components definition (100,101,102,103,200,201,202,203,204,205,500,300,301,302,303,304,305,306,307,308,400,401,402)
+            'components':'100,101,102,103,200,201,202,203,204,205,500,300,301,302,303,304,305,306,307,308,400,401,402',
             'lc':'en'
         }
         profile_response = self._make_request('GET', f'platform/Destiny2/1/Profile/{self.membership_id}/', params=query_string, headers=self.headers)
+
         character_dictionary = profile_response['Response']['characters']['data']
 
-        titan_class_hash = 3655393761
-        hunter_class_hash = 671679327
-        warlock_class_hash = 2271682572
-
-        class_hash_lookup_dict = requests.request('GET', 'https://destiny.plumbing/en/raw/DestinyClassDefinition.json').json()
-        for listed_class_hash in class_hash_lookup_dict:
-            if class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'titan':
-                titan_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
-            elif class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'warlock':
-                warlock_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
-            elif class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'hunter':
-                hunter_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
+        if hardcoded_class_hash:
+            titan_class_hash = 3655393761
+            hunter_class_hash = 671679327
+            warlock_class_hash = 2271682572
+        else:
+            # TODO implement sqlite3 determination (parameterize between db exploration, hardcode or plumbing)
+            class_hash_lookup_dict = requests.request('GET', 'https://destiny.plumbing/en/raw/DestinyClassDefinition.json').json()
+            for listed_class_hash in class_hash_lookup_dict:
+                if class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'titan':
+                    titan_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
+                elif class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'warlock':
+                    warlock_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
+                elif class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'hunter':
+                    hunter_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
 
         for character in character_dictionary:
             if int(character_dictionary[character]['classHash']) == warlock_class_hash:
-                self.character_hashes.update({'warlock':character_dictionary[character]['characterId']})
+                self.character_hashes.update({'character_1':character_dictionary[character]['characterId']})
 
             elif int(character_dictionary[character]['classHash']) == hunter_class_hash:
-                self.character_hashes.update({'hunter':character_dictionary[character]['characterId']})
+                self.character_hashes.update({'character_3':character_dictionary[character]['characterId']})
 
             elif int(character_dictionary[character]['classHash']) == titan_class_hash:
-                self.character_hashes.update({'titan':character_dictionary[character]['characterId']})
+                self.character_hashes.update({'character_2':character_dictionary[character]['characterId']})
             else:
                 raise Exception('Class Hash wasn\'t found!')
+
+        # Handle equipment
+        character_equipment = profile_response['Response']['characterEquipment']['data']
+        for character_id in list(character_equipment.keys()):
+            for item in character_equipment[character_id]['items']:
+                self.owned_item_hash_instance_id[list(self.character_hashes.keys())[list(self.character_hashes.values()).index(character_id)]].update({item['itemHash']:item['itemInstanceId']})
+
         return profile_response
 
     def get_featured(self):
@@ -412,41 +427,41 @@ class D2Companion:
         }
         return self._make_request('POST', 'platform/Destiny2/Actions/Items/TransferItem/', params={'lc':'en'}, json=payload, headers=self.headers)
 
-    def transfer_from_hunter_to_warlock(self, item_instance_id, item_hash):
+    def transfer_from_character_3_to_character_1(self, item_instance_id, item_hash):
         if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
             self.get_profile()
-        self.transfer_item_to_vault(self.character_hashes['hunter'], item_instance_id, item_hash)
-        self.transfer_item_from_vault(self.character_hashes['warlock'], item_instance_id, item_hash)
+        self.transfer_item_to_vault(self.character_hashes['character_3'], item_instance_id, item_hash)
+        self.transfer_item_from_vault(self.character_hashes['character_1'], item_instance_id, item_hash)
 
-    def transfer_from_hunter_to_titan(self, item_instance_id, item_hash):
+    def transfer_from_character_3_to_character_2(self, item_instance_id, item_hash):
         if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
             self.get_profile()
-        self.transfer_item_to_vault(self.character_hashes['hunter'], item_instance_id, item_hash)
-        self.transfer_item_from_vault(self.character_hashes['titan'], item_instance_id, item_hash)
+        self.transfer_item_to_vault(self.character_hashes['character_3'], item_instance_id, item_hash)
+        self.transfer_item_from_vault(self.character_hashes['character_2'], item_instance_id, item_hash)
 
-    def transfer_from_titan_to_warlock(self, item_instance_id, item_hash):
+    def transfer_from_character_2_to_character_1(self, item_instance_id, item_hash):
         if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
             self.get_profile()
-        self.transfer_item_to_vault(self.character_hashes['titan'], item_instance_id, item_hash)
-        self.transfer_item_from_vault(self.character_hashes['warlock'], item_instance_id, item_hash)
+        self.transfer_item_to_vault(self.character_hashes['character_2'], item_instance_id, item_hash)
+        self.transfer_item_from_vault(self.character_hashes['character_1'], item_instance_id, item_hash)
 
-    def transfer_from_titan_to_hunter(self, item_instance_id, item_hash):
+    def transfer_from_character_2_to_character_3(self, item_instance_id, item_hash):
         if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
             self.get_profile()
-        self.transfer_item_to_vault(self.character_hashes['titan'], item_instance_id, item_hash)
-        self.transfer_item_from_vault(self.character_hashes['hunter'], item_instance_id, item_hash)
+        self.transfer_item_to_vault(self.character_hashes['character_2'], item_instance_id, item_hash)
+        self.transfer_item_from_vault(self.character_hashes['character_3'], item_instance_id, item_hash)
 
-    def transfer_from_warlock_to_hunter(self, item_instance_id, item_hash):
+    def transfer_from_character_1_to_character_3(self, item_instance_id, item_hash):
         if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
             self.get_profile()
-        self.transfer_item_to_vault(self.character_hashes['warlock'], item_instance_id, item_hash)
-        self.transfer_item_from_vault(self.character_hashes['hunter'], item_instance_id, item_hash)
+        self.transfer_item_to_vault(self.character_hashes['character_1'], item_instance_id, item_hash)
+        self.transfer_item_from_vault(self.character_hashes['character_3'], item_instance_id, item_hash)
 
-    def transfer_from_warlock_to_titan(self, item_instance_id, item_hash):
+    def transfer_from_character_1_to_character_2(self, item_instance_id, item_hash):
         if None in [character_hash for character_class, character_hash in self.character_hashes.items()]:
             self.get_profile()
-        self.transfer_item_to_vault(self.character_hashes['warlock'], item_instance_id, item_hash)
-        self.transfer_item_from_vault(self.character_hashes['titan'], item_instance_id, item_hash)
+        self.transfer_item_to_vault(self.character_hashes['character_1'], item_instance_id, item_hash)
+        self.transfer_item_from_vault(self.character_hashes['character_2'], item_instance_id, item_hash)
 
 
 root_directory = os.getcwd()
@@ -457,7 +472,11 @@ c.read(configFilePath)
 D2 = D2Companion(c)
 D2.login(c.get('authentication', 'username_email'), c.get('authentication', 'password'))
 if PRETTY_PRINT:
-    print(json.dumps(D2.get_profile(), indent=4))
+    #print(json.dumps(D2.get_profile(), indent=4))
+    pass
 else:
-    print(D2.get_profile())
-print(json.dumps(D2.hash_to_item, indent=4))
+    #print(D2.get_profile())
+    pass
+#print(json.dumps(D2.hash_to_item, indent=4))
+#print(json.dumps(D2.get_my_character(), indent=4))
+print(json.dumps(D2.owned_item_hash_instance_id, indent=4))
