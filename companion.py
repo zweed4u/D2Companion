@@ -39,12 +39,19 @@ class D2Companion:
         else:
             return self.session.request(method, f'{self.base_url}/{endpoint}', params=params, data=data, json=json, headers=headers)
 
+    def fetch_all_from_db_query(self, sql_query, db_path):
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        c.execute(sql_query)
+        return c.fetchall()
+
     def populate_item_hash_dict(self, use_plumbling=False):
         if use_plumbling:
             all_item_definitions = requests.request('GET', 'https://destiny.plumbing/en/raw/DestinyInventoryItemDefinition.json').json()
             for item_hash in all_item_definitions.keys():
                 self.hash_to_item[int(item_hash)] = all_item_definitions[item_hash]['displayProperties']['name']
         else:
+            # TODO add db file exist?
             world_content_db_path = f"http://bungie.net{self.get_manifest()['Response']['mobileWorldContentPaths']['en']}"
             local_filename = world_content_db_path.split('/')[-1]
             r = requests.request('GET', world_content_db_path, stream=True)
@@ -59,10 +66,9 @@ class D2Companion:
             shutil.rmtree(f'{os.getcwd()}/{local_filename.split(".")[0]}')
             shutil.move(f'{os.getcwd()}/{local_filename}', f'{os.getcwd()}/{local_filename}.sqlite3')
             db_file_path = f'{os.getcwd()}/{local_filename}.sqlite3'
-            conn = sqlite3.connect(db_file_path)
-            c = conn.cursor()
-            c.execute('SELECT id, json from DestinyInventoryItemDefinition')
-            id_json_items_list_tuple = c.fetchall()
+
+            id_json_items_list_tuple = self.fetch_all_from_db_query('SELECT id, json from DestinyInventoryItemDefinition', db_file_path)
+
             for item_tuple in id_json_items_list_tuple:
                 item_hash = item_tuple[0]
                 item_json = json.loads(item_tuple[1])
@@ -207,7 +213,33 @@ class D2Companion:
                     warlock_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
                 elif class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'hunter':
                     hunter_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
-
+            ###########################
+            # REFACTOR ABOVE -- BELOW LOGIC FOR DB PARSE FOR CLASS HASH DETERMINATION
+            # TODO add db file exist?
+            world_content_db_path = f"http://bungie.net{self.get_manifest()['Response']['mobileWorldContentPaths']['en']}"
+            local_filename = world_content_db_path.split('/')[-1]
+            r = requests.request('GET', world_content_db_path, stream=True)
+            with open(local_filename, 'wb') as file:
+                for chunk in r.iter_content(chunk_size=1024): 
+                    if chunk:
+                        file.write(chunk)
+            zip_ref = zipfile.ZipFile(f'{os.getcwd()}/{local_filename}', 'r')
+            zip_ref.extractall(f'{os.getcwd()}/{local_filename.split(".")[0]}')
+            zip_ref.close()
+            shutil.copy(f'{os.getcwd()}/{local_filename.split(".")[0]}/{local_filename}', os.getcwd())
+            shutil.rmtree(f'{os.getcwd()}/{local_filename.split(".")[0]}')
+            shutil.move(f'{os.getcwd()}/{local_filename}', f'{os.getcwd()}/{local_filename}.sqlite3')
+            db_file_path = f'{os.getcwd()}/{local_filename}.sqlite3'
+            class_list_jsons = [json.loads(class_json[0]) for class_json in self.fetch_all_from_db_query('SELECT json from DestinyClassDefinition', db_file_path)]
+            for d2_class in class_list_jsons:
+                if d2_class['displayProperties']['name'].lower() == 'warlock':
+                    warlock_class_hash = d2_class['hash']
+                elif d2_class['displayProperties']['name'].lower() == 'titan':
+                    titan_class_hash = d2_class['hash']
+                elif d2_class['displayProperties']['name'].lower() == 'hunter':
+                    hunter_class_hash = d2_class['hash']
+            ###################################################################
+            ###################################################################
         for character in character_dictionary:
             if int(character_dictionary[character]['classHash']) == warlock_class_hash:
                 self.character_hashes.update({'character_1':character_dictionary[character]['characterId']})
