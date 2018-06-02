@@ -51,12 +51,12 @@ class D2Companion:
             for item_hash in all_item_definitions.keys():
                 self.hash_to_item[int(item_hash)] = all_item_definitions[item_hash]['displayProperties']['name']
         else:
-            # TODO add db file exist?
             world_content_db_path = f"http://bungie.net{self.get_manifest()['Response']['mobileWorldContentPaths']['en']}"
             local_filename = world_content_db_path.split('/')[-1]
+            # TODO add db file exist?
             r = requests.request('GET', world_content_db_path, stream=True)
             with open(local_filename, 'wb') as file:
-                for chunk in r.iter_content(chunk_size=1024): 
+                for chunk in r.iter_content(chunk_size=1024):
                     if chunk:
                         file.write(chunk)
             zip_ref = zipfile.ZipFile(f'{os.getcwd()}/{local_filename}', 'r')
@@ -188,8 +188,7 @@ class D2Companion:
         # TODO implement match of inventory to hash_to_item dictionary
         pass
 
-    def get_profile(self, hardcoded_class_hash=False):
-        # TODO Populate gear dictionaries with unequipped
+    def get_profile(self, hardcoded_class_hash=False, use_plumbling=False):
         if self.membership_id is None:
             self.get_memberships_by_id()
         query_string = {
@@ -204,42 +203,40 @@ class D2Companion:
             hunter_class_hash = 671679327
             warlock_class_hash = 2271682572
         else:
-            # TODO implement sqlite3 determination (parameterize between db exploration, hardcode or plumbing)
-            class_hash_lookup_dict = requests.request('GET', 'https://destiny.plumbing/en/raw/DestinyClassDefinition.json').json()
-            for listed_class_hash in class_hash_lookup_dict:
-                if class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'titan':
-                    titan_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
-                elif class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'warlock':
-                    warlock_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
-                elif class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'hunter':
-                    hunter_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
-            ###########################
-            # REFACTOR ABOVE -- BELOW LOGIC FOR DB PARSE FOR CLASS HASH DETERMINATION
-            # TODO add db file exist?
-            world_content_db_path = f"http://bungie.net{self.get_manifest()['Response']['mobileWorldContentPaths']['en']}"
-            local_filename = world_content_db_path.split('/')[-1]
-            r = requests.request('GET', world_content_db_path, stream=True)
-            with open(local_filename, 'wb') as file:
-                for chunk in r.iter_content(chunk_size=1024): 
-                    if chunk:
-                        file.write(chunk)
-            zip_ref = zipfile.ZipFile(f'{os.getcwd()}/{local_filename}', 'r')
-            zip_ref.extractall(f'{os.getcwd()}/{local_filename.split(".")[0]}')
-            zip_ref.close()
-            shutil.copy(f'{os.getcwd()}/{local_filename.split(".")[0]}/{local_filename}', os.getcwd())
-            shutil.rmtree(f'{os.getcwd()}/{local_filename.split(".")[0]}')
-            shutil.move(f'{os.getcwd()}/{local_filename}', f'{os.getcwd()}/{local_filename}.sqlite3')
-            db_file_path = f'{os.getcwd()}/{local_filename}.sqlite3'
-            class_list_jsons = [json.loads(class_json[0]) for class_json in self.fetch_all_from_db_query('SELECT json from DestinyClassDefinition', db_file_path)]
-            for d2_class in class_list_jsons:
-                if d2_class['displayProperties']['name'].lower() == 'warlock':
-                    warlock_class_hash = d2_class['hash']
-                elif d2_class['displayProperties']['name'].lower() == 'titan':
-                    titan_class_hash = d2_class['hash']
-                elif d2_class['displayProperties']['name'].lower() == 'hunter':
-                    hunter_class_hash = d2_class['hash']
-            ###################################################################
-            ###################################################################
+            if use_plumbling:
+                class_hash_lookup_dict = requests.request('GET', 'https://destiny.plumbing/en/raw/DestinyClassDefinition.json').json()
+                for listed_class_hash in class_hash_lookup_dict:
+                    if class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'titan':
+                        titan_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
+                    elif class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'warlock':
+                        warlock_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
+                    elif class_hash_lookup_dict[listed_class_hash]['displayProperties']['name'].lower() == 'hunter':
+                        hunter_class_hash = class_hash_lookup_dict[listed_class_hash]['hash']
+            else:
+                world_content_db_path = f"http://bungie.net{self.get_manifest()['Response']['mobileWorldContentPaths']['en']}"
+                local_filename = world_content_db_path.split('/')[-1]
+                # TODO add db file exist?
+                r = requests.request('GET', world_content_db_path, stream=True)
+                with open(local_filename, 'wb') as file:
+                    for chunk in r.iter_content(chunk_size=1024): 
+                        if chunk:
+                            file.write(chunk)
+                zip_ref = zipfile.ZipFile(f'{os.getcwd()}/{local_filename}', 'r')
+                zip_ref.extractall(f'{os.getcwd()}/{local_filename.split(".")[0]}')
+                zip_ref.close()
+                shutil.copy(f'{os.getcwd()}/{local_filename.split(".")[0]}/{local_filename}', os.getcwd())
+                shutil.rmtree(f'{os.getcwd()}/{local_filename.split(".")[0]}')
+                shutil.move(f'{os.getcwd()}/{local_filename}', f'{os.getcwd()}/{local_filename}.sqlite3')
+                db_file_path = f'{os.getcwd()}/{local_filename}.sqlite3'
+                class_list_jsons = [json.loads(class_json[0]) for class_json in self.fetch_all_from_db_query('SELECT json from DestinyClassDefinition', db_file_path)]
+                for d2_class in class_list_jsons:
+                    if d2_class['displayProperties']['name'].lower() == 'warlock':
+                        warlock_class_hash = d2_class['hash']
+                    elif d2_class['displayProperties']['name'].lower() == 'titan':
+                        titan_class_hash = d2_class['hash']
+                    elif d2_class['displayProperties']['name'].lower() == 'hunter':
+                        hunter_class_hash = d2_class['hash']
+
         for character in character_dictionary:
             if int(character_dictionary[character]['classHash']) == warlock_class_hash:
                 self.character_hashes.update({'character_1':character_dictionary[character]['characterId']})
