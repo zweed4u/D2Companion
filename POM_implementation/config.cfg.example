@@ -1,0 +1,5 @@
+# Modify this file and save it as config.cfg
+
+[authentication]
+username_email = johndoe@gmail.com
+password = password12345
