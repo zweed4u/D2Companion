@@ -188,6 +188,9 @@ class D2Companion:
         # TODO implement match of inventory to hash_to_item dictionary
         pass
 
+    def get_triumphs(self):
+        return self._make_request('GET', f'platform/Destiny2/1/Triumphs/{self.membership_id}/', params={'lc':'en'}, headers=self.headers)
+
     def get_profile(self, hardcoded_class_hash=False, use_plumbling=False):
         if self.membership_id is None:
             self.get_memberships_by_id()
