@@ -356,6 +356,42 @@ class D2Companion:
         # blz ../3/1/0/
         return self._make_request('GET', 'platform/Fireteam/Clan/0/My/2/1/0/', params=query_string, headers=self.headers)
 
+    def create_fireteam(self, fireteam_title, is_public, has_mic, players_needed, players_already_in_fireteam, character):
+        # TODO - add dictionary traversal and LUTs for activities, platform and character hash
+        # character - from your hashes self.character_hashes.values()
+        # anything  5
+        # crucible  2
+        # nightfall 4
+        # raid      1
+        # trials    3
+        # psn 1
+        # xbx 2
+        # blz 3
+        payload = {
+            "activityType": 4,  # from above comment/s (nightfall)
+            "alternateSlotCount": players_already_in_fireteam,
+            "isPublic": is_public,
+            "locale": "en",
+            "ownerCharacterId": list(self.character_hashes.values())[0],  # this is my titan hash - using first one has example
+            "ownerHasMicrophone": has_mic,
+            "platform": 2,  # from above comment/s (xbox)
+            "playerSlotCount": players_needed,
+            "title": fireteam_title
+        }
+        return self._make_request('POST', 'platform/Fireteam/Clan/0/Create/', params={'lc':'en'}, json=payload, headers=self.headers)
+
+    def get_my_fireteam(self, fireteam_id):
+        # fireteam_id can be retrieved self.create_fireteam() response
+        return self._make_request('GET', f'platform/Fireteam/Clan/0/Summary/{fireteam_id}/', payload={'lc':'en'}, headers=self.headers)
+
+    def invite_fireteam_to_game(self, fireteam_id):
+        # fireteam_id can be retrieved self.create_fireteam() response
+        return self._make_request('POST', f'platform/Fireteam/Clan/0/Invite/{fireteam_id}/0/', payload={'lc':'en'}, headers=self.headers)
+
+    def close_fireteam(self, fireteam_id):
+        # fireteam_id can be retrieved self.create_fireteam() response
+        return self._make_request('POST', f'platform/Fireteam/Clan/0/Close/{fireteam_id}/', payload={'lc':'en'}, headers=self.headers)
+
     def search_users(self, username_queried):
         return self._make_request('GET', f'platform/User/SearchUsersPaged/{username_queried}/1/30/', params={'lc':'en'}, headers=self.headers)
 
