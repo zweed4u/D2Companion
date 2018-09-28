@@ -540,6 +540,46 @@ class D2Companion:
         self.transfer_item_to_vault(self.character_hashes['character_1'], item_instance_id, item_hash)
         self.transfer_item_from_vault(self.character_hashes['character_2'], item_instance_id, item_hash)
 
+    def exploit_add_kill_tracker(self, character_hash, item_id, is_crucible=False):
+        data = {
+            "affectedItemId": str(item_id),
+            "characterId": str(character_hash),
+            "membershipType": 1,
+            "type": 1
+        }
+        correlation_id = self.session.request('POST', 'https://www.bungie.net/platform/Destiny2/Awa/Initialize/', params={'lc':'en'}, headers=self.headers).json()['Response']['correlationId']
+        action_token = self.session.request('GET', f'https://www.bungie.net/platform/Destiny2/Awa/GetActionToken/{correlation_id}/', params={'lc':'en'}, headers=self.headers).json()['Response']['actionToken']
+
+        """ even needed? only action token in payload for socket
+        # TODO flesh this method out - "Secret nonce received via the PUSH notification" ???
+        nonce = self._get_nonce()
+        payload = {
+            "correlationId": correlation_id,
+            "nonce": nonce,
+            "selection": 2
+        }
+        self.session.request('POST', f'https://www.bungie.net/platform/Destiny2/Awa/AwaProvideAuthorizationResult/', params={'lc':'en'}, data=payload, headers=self.headers).json()
+        """
+        crucible_tracker_hash = 38912240
+        kill_tracker_hash = 2302094943
+        payload = {
+            "actionToken": action_token,
+            "characterId": str(character_hash),
+            "itemInstanceId": str(item_id),
+            "membershipType": 1,
+            "plug": {
+                "plugItemHash": crucible_tracker_hash if is_crucible else kill_tracker_hash,
+                "socketIndex": 9
+            }
+        }
+        response = self.session.request('POST', 'https://www.bungie.net/platform/Destiny2/Actions/Items/InsertSocketPlug/', params={'lc':'en'}, data=payload, headers=self.headers).json()
+        # Catch "DestinyShardRelayProxyTimeout"
+        if response['ErrorCode'] != 1 or response['ErrorStatus'] != 'Success':
+            print(response['ErrorStatus'])
+            print(response['Message'])
+        else:
+            print(response)
+
 
 root_directory = os.getcwd()
 c = configparser.ConfigParser()
